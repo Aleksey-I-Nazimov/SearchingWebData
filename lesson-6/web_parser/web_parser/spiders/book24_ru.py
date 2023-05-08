@@ -69,6 +69,8 @@ class Book24Spider(scrapy.Spider):
         current_price_div = self.extract(root=price_div,xpath="div[@class='product-card-price__current']")
         old_price_div = self.extract(root=price_div,xpath="div[@class='product-card-price__old']")
         
+        if "https:" not in picture_src_data:
+            picture_src_data = "https:{}".format(picture_src_data)
         
         book_info={
             'src':book_src,

@@ -8,14 +8,31 @@
 #     https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 from scrapy.settings.default_settings import LOG_LEVEL
 
+
+#****************************************************************************************
+# To launch the project:
+# >> scrapy runspider spiders/book24_ru.py
+#****************************************************************************************
+
 BOT_NAME = 'web_parser'
 
 SPIDER_MODULES = ['web_parser.spiders']
 NEWSPIDER_MODULE = 'web_parser.spiders'
 
+
+
+
+
 # Logging
 LOG_ENABLED = True
 LOG_LEVEL = "INFO"
+
+
+# Image pipeLine:------------------------------------------------------------------------
+# >> pip install Pillow
+# >> conda list 
+IMAGES_STORE = 'photos'
+
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
@@ -70,6 +87,7 @@ DEFAULT_REQUEST_HEADERS = {
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
     'web_parser.pipelines.WebParserPipeline': 300,
+    'web_parser.pipelines.BookPhotoPipeline': 200
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)
