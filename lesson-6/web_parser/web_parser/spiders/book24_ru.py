@@ -35,21 +35,22 @@ class Book24Spider(scrapy.Spider):
     def parse(self, response:HtmlResponse):
         self.log("  --> Requesting URL {}".format(response.url), logging.INFO)
 
+        # Downloading HTML -text:--------------------------------------------------------
         response_text = self.make_selenium_get_request_for_lazy(response.url);
         html_page = html.fromstring(response_text)
-
+        #----------(downloading HTML -text)----------------------------------------------
         
         
         # Parsing book info:-------------------------------------------------------------
-        # driver = self.make_selenium(response.url)
-        # elements = driver.find_elements(By.XPATH, "//article[contains(@class,'product-card')]/div[contains(@class,'image-holder')]/a/picture/source")
-        # for element in elements:
-        #     self.log("  --> imgs {}".format(element.get_property("srcset")), logging.INFO)
-        # driver.close()
+        product_cards = html_page.xpath("//article[@class='product-card']")
+        for cnt,product_card in enumerate(product_cards):
 
-        product_cards = html_page.xpath("//article[contains(@class,'product-card')]/div[contains(@class,'image-holder')]/a/picture/source/@srcset")
-        for product_card in product_cards:
-            self.log("  --> imgs {}".format(product_card), logging.INFO)
+            book_src = self.extract(root=product_card,xpath="div[contains(@class,'image-holder')]/a/@href")
+            picture_src_data = self.extract(root=product_card,xpath="div[contains(@class,'image-holder')]/a/picture/source/@data-srcset").split(" ")[0]
+            book_content = self.extract(root=product_card,xpath="div[contains(@class,'content')]")
+            
+            book_data = self.make_book_info( book_element=book_content, book_src=book_src, picture_src_data=picture_src_data )
+            yield book_data;
 
         
         # Parsing the next books pages:--------------------------------------------------
@@ -61,50 +62,46 @@ class Book24Spider(scrapy.Spider):
         yield response.follow(next_page_url,callback=self.parse)
         #----------(parsing the next books pages)----------------------------------------
 
-
-        # product_cards = html_page.xpath("//article[contains(@class,'product-card')]/div[contains(@class,'image-holder')]/a/picture/img") #"//article[@class='product-card']")
-        # for product_card in product_cards:
-            #clazz = product_card.xpath("@class")[0]
-            #if clazz == 'product-card':
-            #elements = product_card.find_class("product-card__image-holder")[0].find_class("product-card__picture")[0].find_class("product-card__image ls-is-cached lazyloaded _loaded")[0]#find_class("product-card__image ls-is-cached lazyloaded _loaded")[0]
-            # self.log("  --> imgs {}".format(product_card), logging.INFO)
-                
-            #elements = product_card.xpath("//div[contains(@class,'__content')]/a/@title")[0];
-            #self.log("  --> imgs {}".format(clazz), logging.INFO)
-            
-        #----------(parsing book info)---------------------------------------------------
+        
+    def make_book_info (self,book_element,book_src,picture_src_data):
+        
+        price_div = self.extract(root=book_element,xpath="div[contains(@class,'card-price')]")
+        current_price_div = self.extract(root=price_div,xpath="div[@class='product-card-price__current']")
+        old_price_div = self.extract(root=price_div,xpath="div[@class='product-card-price__old']")
+        
+        
+        book_info={
+            'src':book_src,
+            'title': self.extract(root=book_element,xpath="a[contains(@class,'card__name')]",is_text=True),
+            'author': self.extract(root=book_element,xpath="div[contains(@class,'card__authors')]/span",is_text=True),
+            'img_src':picture_src_data,
+            'price':self.extract(root=current_price_div,xpath="span[@class='app-price']",is_text=True),
+            'old_price':self.extract(root=old_price_div,xpath="span[@class='app-price product-card-price__old-value']",is_text=True),
+            'discount':self.extract(root=old_price_div,xpath="span[@class='product-card-price__discount']",is_text=True)
+            }
+        
+        self.log("  --> New book {}".format(book_info), logging.INFO)
+        return book_info;
+    
+    def extract (self,root,xpath,is_text=False):
+        if root is None: return None
+        else:
+            elements = root.xpath(xpath)
+            if elements is None: return None
+            else:
+                if len(elements)>0:
+                    if is_text == False:
+                        return elements[0]
+                    else:
+                        return elements[0].text_content()
+                else: return None        
     
     def make_selenium_get_request_for_lazy (self,url):
         driver = self.make_selenium(url)
-        # driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        time.sleep(10);
-        # driver.execute_script("window.scrollTo(0, 0);")
-        #elements = driver.find_elements(By.XPATH,"//article[contains(@class,'product-card')]/div")
-        #for element in elements:
-        #    try:
-        #        element.click()
-        #        driver.execute_script("window.history.go(-1)")
-        #    except:
-        #        self.log("Not clickable: {}",logging.INFO);
-            
-        # article_elements = driver.find_elements(By.TAG_NAME,"article")
-        # for article_element in article_elements:
-        #     article_element.click()
-        #     self.log("Clicked element: {}".format(article_element),logging.INFO);
+        time.sleep(6);
         html_string = driver.page_source
         driver.close()
         return html_string
-        
-        
-    #
-    # This method employes the selenium approach for parsing the requested URL.
-    # It' s used for removing auto blocking and comfortable executing JS scripts
-    #  
-    # def make_selenium_get_request_3(self,url):
-    #    driver = self.make_selenium(url)
-    #    html_string = driver.page_source
-    #    driver.close()
-    #    return html_string
     
     def make_selenium(self,url):
        chrome_options = Options()
