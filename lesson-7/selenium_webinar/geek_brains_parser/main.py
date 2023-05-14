@@ -12,6 +12,7 @@ from pynput.mouse import Button, Controller
 
 from random import randint as next_int
 from random import uniform as next_float
+import json
 
 options = Options()
 options.accept_insecure_certs = True
@@ -178,7 +179,10 @@ print("  --> Current window title: {} x {}".format(driver.title,driver.current_u
 #----------------------------------------------------------------------------------------
 
 
+
 # Parsing the single page:---------------------------------------------------------------
+product_list=[]
+
 wait_element =  WebDriverWait(driver, 20);
 product_divs = wait_element.until(EC.visibility_of_all_elements_located((By.XPATH, "//div[@data-qa-product='']")))
 print ("  --> Searched products: {}".format(len(product_divs)));
@@ -194,6 +198,7 @@ for product_div in product_divs:
         "price":price,
         "img_list":img_list
         }
+    product_list.append(parsed_product)
     print (parsed_product)
 #----------------------------------------------------------------------------------------
 
@@ -224,12 +229,17 @@ while True:
                 "price":price,
                 "img_list":img_list
             }
+            product_list.append(parsed_product)
             print (parsed_product)
         next_cnt+=1;
     else:
         print ("  --> {} pages were parsed! The end!".format(next_cnt-1))
         break;
 #----------------------------------------------------------------------------------------
+
+
+with open("gazonokosilki.json", "w",encoding='utf-8') as text_file:
+    text_file.write(json.dumps(product_list))
 
 driver.close();
 
